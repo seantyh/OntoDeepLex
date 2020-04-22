@@ -3,15 +3,12 @@
 # Edit at https://www.gitignore.io/?templates=vim,python,visualstudiocode
 
 
-# data/*
-!data/CLD/README.md
-!data/deeplex/README.md
+data/*
 !data/README.md
+!data/outputs/
 
 models/*
 !models/README.md
-
-**/lightning_logs/
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
