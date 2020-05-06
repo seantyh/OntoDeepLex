@@ -11,6 +11,8 @@ models/*
 !models/README.md
 
 notebooks/cache.sqlite
+
+references/
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
