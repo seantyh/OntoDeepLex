@@ -1,4 +1,4 @@
-,0,1,2,3,4,5,6
+,word,pwn_synset,en_word,pwn_sense_offset,pos,bn_offset,bn_key
 0,犯,02582615v,perpetrate,perpetrate%2:41:00::,VERB,bn:00085426v,False
 1,犯,02582615v,commit,commit%2:41:00::,VERB,bn:00085426v,False
 2,犯,02582615v,pull,pull%2:41:00::,VERB,bn:00085426v,False
