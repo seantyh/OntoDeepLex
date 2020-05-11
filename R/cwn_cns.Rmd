@@ -1,0 +1,34 @@
+---
+title: "cwn_cns"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readr)
+require(ggplot2)
+require(GGally)
+require(dplyr)
+```
+
+```{r load, include=FALSE}
+cns = read_csv("../data/cns/cns_meld_sch.csv")
+cns_sub = cns %>% 
+              filter(ncompo>30000) %>%
+              select(c("trad_word", "RT", "ERR", "nsenses",
+                           "degree", "closeness", "betweenness",
+                           "eigen", "ncompo")) %>%
+              mutate(nsenses=log(nsenses),
+                     degree=log(degree+1),
+                     betweenness=log(betweenness+1),
+                     eigen=log(eigen+1))
+```
+
+```{r data}
+head(cns_sub)
+
+```
+
+```{r plot}
+ggpairs(cns_sub, columns=2:(ncol(cns_sub)-1))
+```
