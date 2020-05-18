@@ -7,6 +7,8 @@ data/*
 !data/README.md
 !data/outputs/
 
+.Rhistory
+
 models/*
 !models/README.md
 
