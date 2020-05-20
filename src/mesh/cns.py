@@ -1,3 +1,4 @@
+from typing import List
 import igraph as ig
 from tqdm.autonotebook import tqdm
 from CwnGraph import CwnBase, CwnSense, CwnFacet
@@ -122,18 +123,54 @@ def compo_size_distribution(G: ig.Graph, **kwargs):
     return compo_distr
 
 def trim_pwn(G):
-    if G.is_directed():
-        uG = G.copy()
-        uG.to_undirected(combine_edges='first')
-    else:
-        uG = G
+    from itertools import combinations, product
+    import time
+    cwn_vertices = list(G.vs.select(pwn=None))
+    pwn_vertices = list(G.vs.select(pwn="pwn"))
+    edges_to_add = set()    
 
-    compos = uG.components()
-    print("Find %d components" % len(compos))
-    for compo_x in tqdm(compos):
-        trim_pwn_in_component(G, compo_x)
+    # find connected CWNs
+    for pwn_v in tqdm(pwn_vertices):
+        edges = find_conn_cwn_with_pwn(G, pwn_v, cwn_vertices)        
+        edges_to_add.update(edges)                        
+
+    # add implied edges in graph    
+    for u, v in tqdm(edges_to_add, desc="adding edges"):
+        G.add_edge(u, v, rel_type="pwn_implied")
+
     
-    G.delete_vertices(G.vs.select(pwn="pwn"))    
+    # trim PWN vertices
+    G.delete_vertices(G.vs.select(pwn="pwn"))        
+
+def find_conn_cwn_with_pwn(G: ig.Graph, 
+        pwn_vertex: ig.Vertex, cwn_vertices: List[ig.Vertex]):
+    src_vertices = []
+    tgt_vertices = []
+
+    inf = float('inf')
+    # from pwn_vertex to cwn_vertices
+    out_paths = G.shortest_paths(pwn_vertex, cwn_vertices, mode=ig.OUT)[0]
+    for pi, path_len in enumerate(out_paths):
+        cwn_v = cwn_vertices[pi]
+        if path_len != inf:
+            tgt_vertices.append(cwn_v)
+    
+    # from cwn_verteices to pwn_vertices
+    in_paths = G.shortest_paths(pwn_vertex, cwn_vertices, mode=ig.IN)[0]
+    for pi, path_len in enumerate(in_paths):
+        cwn_v = cwn_vertices[pi]
+        if path_len != inf:
+            src_vertices.append(cwn_v)
+    
+    cwn_paths = G.shortest_paths(src_vertices, tgt_vertices, mode=ig.OUT)
+    edges_to_add = []
+    for src_i, src_v in enumerate(src_vertices):
+        for tgt_i, tgt_v in enumerate(tgt_vertices):
+            cwn_path_len = cwn_paths[src_i][tgt_i]            
+            if cwn_path_len > 1:
+                edges_to_add.append((src_v, tgt_v))
+
+    return edges_to_add
 
 
 def trim_pwn_in_component(G, vertices):
