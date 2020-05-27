@@ -19,18 +19,23 @@ load_data = function(fpath){
           select(c("word", "RT", "ERR", 
                    "nSense",
                    "closenessA", "betweennessA", "degreeA", "transA", "ncompoA",
+                   "closenessB", "betweennessB", "degreeB", "transB", "ncompoB",
                    "closenessC", "betweennessC", "degreeC", "transC", "ncompoC"
                   )) %>%
           mutate(nSense=log(nSense),
-                 degreeA=log(degreeA+1), degreeC=log(degreeC+1),
-                 closenessA=log(closenessA+1), closenessC=log(closenessC+1),
-                 betweennessA=log(betweennessA+1), betweennessC=log(betweennessC+1),
-                 ncompoA=log(ncompoA), ncompoC=log(ncompoC)
+                 degreeA=log(degreeA+1), degreeB=log(degreeB+1), degreeC=log(degreeC+1),
+                 closenessA=log(closenessA+1), 
+                 closenessB=log(closenessB+1), 
+                 closenessC=log(closenessC+1),
+                 betweennessA=log(betweennessA+1),
+                 betweennessB=log(betweennessB+1),
+                 betweennessC=log(betweennessC+1),
+                 ncompoA=log(ncompoA), ncompoB=log(ncompoB), ncompoC=log(ncompoC)
                 ) %>%
           rename(
-            clsA=closenessA, clsC=closenessC,
-            btwA=betweennessA, btwC=betweennessC,
-            degA=degreeA, degC=degreeC
+            clsA=closenessA, clsB=closenessB, clsC=closenessC,
+            btwA=betweennessA, btwB=betweennessB, btwC=betweennessC,
+            degA=degreeA, degB=degreeB, degC=degreeC
           )
   return(cns_preproc)
 }
@@ -44,19 +49,41 @@ head(cns_min)
 
 ```
 
-```{r plot}
-ggpairs(cns_min, columns=which(!(grepl("word|.*C", names(cns_min))))) +
+## Graph, min()
+```{r plot_min}
+col_pat = function(x){sprintf("RT|ERR|nSense|.*%s", x)}
+
+ggpairs(cns_min, columns=which(grepl(col_pat("A"), names(cns_min)))) +
     ggtitle("CWN Graph A, min()")
-ggpairs(cns_min, columns=which(!(grepl("word|.*A", names(cns_min))))) +
+ggpairs(cns_min, columns=which(grepl(col_pat("B"), names(cns_min)))) +
+    ggtitle("CWN Graph B, min()")
+ggpairs(cns_min, columns=which(grepl(col_pat("C"), names(cns_min)))) +
     ggtitle("CWN Graph C, min()")
-ggpairs(cns_avg, columns=which(!(grepl("word|.*C", names(cns_avg))))) +
+
+```
+
+
+
+## Graph, avg()
+```{r plot_avg}
+
+ggpairs(cns_avg, columns=which(grepl(col_pat("A"), names(cns_avg)))) +
     ggtitle("CWN Graph A, avg()")
-ggpairs(cns_avg, columns=which(!(grepl("word|.*A", names(cns_avg))))) +
+ggpairs(cns_avg, columns=which(grepl(col_pat("B"), names(cns_avg)))) +
+    ggtitle("CWN Graph B, avg()")
+ggpairs(cns_avg, columns=which(grepl(col_pat("C"), names(cns_avg)))) +
     ggtitle("CWN Graph C, avg()")
-ggpairs(cns_max, columns=which(!(grepl("word|.*C", names(cns_max))))) +
+
+```
+
+## Graph, max()
+```{r plot_max}
+
+ggpairs(cns_max, columns=which(grepl(col_pat("A"), names(cns_max)))) +
     ggtitle("CWN Graph A, max()")
-ggpairs(cns_max, columns=which(!(grepl("word|.*A", names(cns_max))))) +
+ggpairs(cns_max, columns=which(grepl(col_pat("B"), names(cns_max)))) +
+    ggtitle("CWN Graph B, max()")
+ggpairs(cns_max, columns=which(grepl(col_pat("C"), names(cns_max)))) +
     ggtitle("CWN Graph C, max()")
-# ggpairs(cns_avg, columns=2:(ncol(cns_avg)))
-# ggpairs(cns_max, columns=2:(ncol(cns_max)))
+
 ```
