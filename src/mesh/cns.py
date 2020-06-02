@@ -42,9 +42,15 @@ def build_igraph(cwn, **kwargs):
     logger.setLevel("INFO")
 
     directed = kwargs.get("directed", False)
-    G = ig.Graph(directed=directed)
+    single_char_only = kwargs.get("single_char_only", False)
+
+    G = ig.Graph(directed=directed)    
     for sense_x in cwn.senses():
-        G.add_vertex(sense_x.id)
+        if single_char_only:
+            if len(sense_x.head_word) == 1:
+                G.add_vertex(sense_x.id)
+        else:
+            G.add_vertex(sense_x.id)
 
     #pylint: disable=all
     G.vs_names = set(G.vs["name"])
