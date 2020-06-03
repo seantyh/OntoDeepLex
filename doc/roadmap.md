@@ -14,23 +14,23 @@ Annotation Tasks
 
 * T2 CWN Expansion  
   * T2.1 新增詞彙
-    > 那些在WSD中沒cover到的詞彙（`A2.1`），如果符合下列條件，則應該加入CWN：
-    > 1. 高頻/keyness(tf-idf)  
-    > 2. N or V
-    > 3. 在華語8K詞
-    > 4. 非專有名詞
-    > 經過自動篩選和人工檢核後，成為待新增詞彙表（`A3.1`）
+    * 那些在WSD中沒cover到的詞彙（`A2.1`），如果符合下列條件，則應該加入CWN：
+      1. 高頻/keyness(tf-idf)  
+      2. N or V
+      3. 在華語8K詞
+      4. 非專有名詞  
+    * 經過自動篩選和人工檢核後，成為待新增詞彙表（`A3.1`）
 
-    > 新增的詞彙必須有下列訊息
-    > 1. 能做詞意區辨(sense distinction) (`A3.2`):
-    >    1. 定義寫得出來
-    >    2. 要有例句（>= 3）
-    > 2. 能定義在CWN的relations，且最好能接上PWN。 (`A4.1`)  
-    >    此步驟需要有適合的介面瀏覽CWN和PWN的語意關係（`M2.2`） 
-    >    * align CWN/PWN with special relation labels
-    >      * mapping_synonym
-    >      * mapping_hypernym
-    >      * mapping_holonym_(member/part/substance)
+    * 新增的詞彙必須有下列訊息
+      1. 能做詞意區辨(sense distinction) (`A3.2`):
+         1. 定義寫得出來
+         2. 要有例句（>= 3）
+      2. 能定義在CWN的relations，且最好能接上PWN。 (`A4.1`)    
+         此步驟需要有適合的介面瀏覽CWN和PWN的語意關係（`M2.2`） 
+         * align CWN/PWN with special relation labels
+           * mapping_synonym
+           * mapping_hypernym
+           * mapping_holonym_(member/part/substance)
     
   * T2.2 檢查/建立CWN原有sense和PWN的關係 (`A4.2`)
 
