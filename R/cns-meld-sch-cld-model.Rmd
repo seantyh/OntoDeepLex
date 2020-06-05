@@ -1,0 +1,78 @@
+---
+title: "cns-meld-sch-cld-model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readr)
+require(ggplot2)
+require(GGally)
+require(dplyr)
+```
+
+```{r load_func}
+load_data = function(fpath){
+  cns = read_csv(fpath)
+  cns_preproc = cns %>% 
+          rename(
+            clsA=closenessA, clsB=closenessB, clsC=closenessC,
+            btwA=betweennessA, btwB=betweennessB, btwC=betweennessC,
+            degA=degreeA, degB=degreeB, degC=degreeC
+          ) %>%
+          mutate(
+            length=factor(length)
+          )
+  return(cns_preproc)
+}
+```
+
+```{r eda}
+data = load_data("../data/cns/merge_cld_meld_sch_avg.csv")
+data1 = data %>% subset(length==1)
+data2 = data %>% subset(length==2)
+nrow(data)
+nrow(data1)
+nrow(data2)
+```
+
+```{r linear.1char}
+m1.0 = lm(-1e3/RT~log(Frequency)+log(C1Frequency), data=data1)
+m1.1 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C1Friends+1), data=data1)
+m1.2 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C1Friends+1)+
+               log(nSense)+log(clsB)+log(degB+1)+log(clsA)+log(degA+1), data=data1)
+summary(m1.0)
+summary(m1.1)
+summary(m1.2)
+anova(m1.1, m1.2)
+```
+
+```{r plot1}
+plot(-1e3/data1$RT, predict(m1.2), 
+     xlab="actual", ylab="predicted (m1.2)", 
+     main="actual vs. predicted (M1.2)")
+```
+
+```{r linear.2char}
+m2.0 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C2Frequency), data=data2)
+m2.1 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C2Frequency)+
+               C1Strokes+C2Strokes, data=data2)
+m2.2 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C2Frequency)+
+               C1Strokes+C2Strokes+
+               C1Entropy+C1BackwardEntropy+C1RE+C2RE, data=data2)
+m2.3 = lm(-1e3/RT~log(Frequency)+log(C1Frequency)+log(C2Frequency)+
+               C1Strokes+C2Strokes+
+               C1Entropy+C1BackwardEntropy+C1RE+C2RE+
+               log(nSense)+log(clsB)+log(degB+1)+log(clsA)+log(degA+1), data=data2)
+summary(m2.0)
+summary(m2.1)
+summary(m2.2)
+summary(m2.3)
+anova(m2.2, m2.3)
+```
+
+```{r plot2}
+plot(-1e3/data2$RT, predict(m2.3), 
+     xlab="actual", ylab="predicted (m2.3)", 
+     main="actual vs. predicted (M2.3)")
+```
