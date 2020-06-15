@@ -3,30 +3,63 @@ import re
 import pickle
 from joblib import Memory
 from functools import partial
-from itertools import chain, islice
+from itertools import chain, islice, cycle
 from collections import Counter
 from typing import List, Iterator
+from shelve import DbfilenameShelf
 import numpy as np
 import torch
+import logging
 from .affix_ckip import CkipAffixoids, Affixoid
 from ..utils import get_data_dir, ensure_dir
 from ..senses.corpus_streamer import CorpusStreamer
 from ..deep.tensor_utils import BertService
 
 class AffixoidAnalyzer:
-    pass
+    def __init__(self, analysis=False):
+        affix_dir = get_data_dir() / "affix/"
+        logger = logging.getLogger("AffixAnalyzer")
+        logger.info("loading CkipAffixoids")
+        self.affixoids = CkipAffixoids(affix_dir)
+
+        cache_dir = affix_dir / "cache"
+        ensure_dir(cache_dir)
+        self.results = DbfilenameShelf(str(cache_dir/"affixoid.data"), writeback=analysis)
+
+    def analyze(self):
+        n_ex_words = sum(len(x.example_words) for x in self.affixoids)
+        ex_words_iter = (zip(cycle([x]), x.example_words) for x in self.affixoids)
+        ex_words_iter = chain.from_iterable(ex_words_iter)
+        ex_words_iter = map(lambda x: (x[0].affixoid, x[1][1]), ex_words_iter)
+
+        analyzer = WordAnalyzer()
+        logger = logging.getLogger("AffixAnalyzer")
+        for idx, (affixoid, word) in enumerate(ex_words_iter):
+            if repr((affixoid, word)) in self.results:
+                continue
+            logger.info(f"[{idx}/{n_ex_words}] analyzing ({affixoid}, {word})")
+            try:
+                self.results[repr((affixoid, word))] = analyzer.analyze(affixoid, word)                                
+            except Exception as ex: 
+                import traceback
+                logger.error(ex)
+                logger.error(traceback.format_exc())
+
+    def get_result(self, affixoid, word):
+        return self.results.get(repr((affixoid, word)), None)
 
 class WordAnalyzer:
     def __init__(self):
         asbc_dir = get_data_dir() / "asbc"
         self.asbc = CorpusStreamer()
         self.bert = BertService()
+        logger = logging.getLogger("WordAnalyzer")
 
-        print("loading asbc5 words")
+        logger.info("loading asbc5 words")
         with (asbc_dir/"asbc5_words.pkl").open("rb") as fin:
             self.words = pickle.load(fin)
 
-        print("loading asbc5 words with POS")
+        logger.info("loading asbc5 words with POS")
         with (asbc_dir/"asbc5_words_pos.pkl").open("rb") as fin:
             self.words_pos = pickle.load(fin)
 
@@ -89,7 +122,7 @@ class WordAnalyzer:
     def compute_productivity_morph(self, affixoid:str, word: str):
         return self.words.get(word, 0)
 
-    def compute_productivity_pos(self, affixoid:str, word: str):        
+    def compute_productivity_pos(self, affixoid:str, word: str):
         return self.words_pos.get(word, [])
 
     def compute_meaning(self, affixoid:str, word: str):
@@ -101,7 +134,7 @@ class WordAnalyzer:
     def compute_mlm_candidates_batch(self,
             sentence_iter: Iterator[str],
             affixoid: str,
-            target_word: str):        
+            target_word: str):
         sentences = [''.join(x[0] for x in sent) for sent in sentence_iter]
         targ_indices = [x.index(target_word) + target_word.index(affixoid)
                         for x in sentences]
@@ -112,16 +145,25 @@ class WordAnalyzer:
         targ_token_indices = [input_data.char_to_token(b, i)
                                 for b, i in enumerate(targ_indices)]
         outputs = self.bert.transform(input_tensors, k=10)
-        predicted = outputs[1][np.arange(len(targ_token_indices)), targ_token_indices, :]
+        if outputs[1].ndim == 2:
+            predicted = outputs[1][targ_token_indices, :]
+        else:
+            predicted = outputs[1][np.arange(len(targ_token_indices)), targ_token_indices, :]
         candidates = [self.bert.decode(x).split() for x in predicted]
         return candidates
 
     def compute_mlm_candidates(self, affixoid: str,
             target_word: str, sentences: Iterator[str]):
-        def batch(iterable, size=10):
+        logger = logging.getLogger("WordAnalyzer")
+        def batch(iterable, size=20, max_size=200):
             iterator = iter(iterable)
+            n = 0
             for first in iterator:
                 yield chain([first], islice(iterator, size - 1))
+                n += size
+                logger.info("working on mlm candidates: %d", n)
+                if n >= 1000:
+                    break
 
         compute_func = partial(
             self.compute_mlm_candidates_batch,
