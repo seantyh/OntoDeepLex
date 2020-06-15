@@ -162,7 +162,7 @@ class WordAnalyzer:
                 yield chain([first], islice(iterator, size - 1))
                 n += size
                 logger.info("working on mlm candidates: %d", n)
-                if n >= 1000:
+                if n >= max_size:
                     break
 
         compute_func = partial(
