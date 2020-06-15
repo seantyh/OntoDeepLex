@@ -1,7 +1,7 @@
 from typing import List, Union, Dict
 import torch
 import torch.nn.functional as F
-from transformers import DistilBertModel, DistilBertConfig, DistilBertTokenizer
+from transformers import DistilBertModel, DistilBertConfig, DistilBertTokenizerFast
 from transformers import DistilBertForMaskedLM
 from CwnGraph import CwnSense
 
@@ -12,7 +12,7 @@ class _BertService:
         config = DistilBertConfig.from_pretrained(model_name)
         config.output_attentions = True
         self.mlm = DistilBertForMaskedLM.from_pretrained(model_name, config=config)
-        self.tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+        self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_name)
 
     def __promote_to_list(self, text: Union[str, List[str]]) -> List[str]:
         if isinstance(text, str):
@@ -29,14 +29,14 @@ class _BertService:
     def decode(self, _id):
         return self.tokenizer.decode(_id)
 
-    def transform(self, input_data: Dict[str, any]):
+    def transform(self, input_data: Dict[str, any], k=5):
         with torch.no_grad():
             predictions = self.mlm(**input_data)
         prob = F.softmax(predictions[0], dim=2)
         logits = predictions[0]
         last_att = predictions[1][-1]
 
-        logits_k, ind_k = torch.topk(logits, 5, axis=2)
+        logits_k, ind_k = torch.topk(logits, k, axis=2)
         logits_k = logits_k.squeeze().numpy()
         ind_k = ind_k.squeeze().numpy()
         return logits_k, ind_k, last_att
