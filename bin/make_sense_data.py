@@ -31,7 +31,7 @@ def main(args):
     print("Sense tagging main routine")
     tagger = SenseTagger()
     streamer = CorpusStreamer()
-    N_CHECK = 10
+    N_CHECK = 3000
 
     buffer = []
     for sent_i, sent_x in enumerate(streamer.sentences):
@@ -50,14 +50,13 @@ def main(args):
                 else:
                     wsd_tokens.append((*x, sense_x.id, sense_x.definition))
         except Exception as ex:
-            print(ex)
+            print("[ERROR] " + str(ex))
 
         buffer.append([sent_i, wsd_tokens])
 
         if (sent_i+1) % N_CHECK == 0:
             write_to_json(buffer, batch_index)
             buffer = []
-            break
 
 if __name__ == "__main__":
     parser = ArgumentParser()
