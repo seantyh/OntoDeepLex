@@ -1,0 +1,3 @@
+[submodule "src/ctm"]
+	path = src/ctm
+	url = https://github.com/MilaNLProc/contextualized-topic-models/
