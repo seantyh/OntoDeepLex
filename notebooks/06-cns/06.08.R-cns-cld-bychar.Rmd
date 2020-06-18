@@ -1,0 +1,75 @@
+---
+title: "meld_sch_bychar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readr)
+require(ggplot2)
+require(partykit)
+require(mgcv)
+require(mgcViz)
+require(qgam)
+require(dplyr)
+```
+
+```{r read_data}
+m2=read_csv("../../data/cns/m2_cld.csv")
+m2$lexicality = factor(m2$lexicality, labels=c("Word", "NonWord"))
+m2$ErrCat = factor(m2$ERR > 50, levels=c(T, F), labels=c("ErrHigh", "ErrLow"))
+m2$C1nSense = log(m2$C1nSense+1)
+m2$C2nSense = log(m2$C2nSense+1)
+m2$C1Frequency = log(m2$C1Frequency+1)
+m2$C2Frequency = log(m2$C2Frequency+1)
+```
+
+```{r eyeballing}
+dim(m2)
+head(m2)
+```
+
+```{r vis_m2}
+ggplot(m2, aes(x=RT, color=lexicality)) + 
+    geom_rug() + 
+    geom_density(lwd=1) + 
+    facet_wrap(~ErrCat)
+```
+
+## Non-word
+
+```{r non-word-1}
+m2_nonword = m2 %>% 
+          subset(lexicality=="NonWord") %>%
+          select(c("RT", "ERR", grep("C[12].", colnames(m2)))) %>%
+          mutate(RT = -1000/RT)
+set.seed(12321)
+m2_nonword_sample = sample_n(m2_nonword, 100)
+head(m2_nonword)
+```
+
+```{r non-word-cforest}
+forest_nw = cforest(RT~.-ERR, data=m2_nonword_sample)
+imp_nw = sort(varimp(forest_nw), decreasing=T)
+imp_nw
+plot(imp_nw)
+```
+```{r non-word-gam}
+gam_nw = gam(RT~te(C1Friends, C2Friends)+te(C1nSense, C2nSense)+te(C1Frequency, C2Frequency), data=m2_nonword)
+summary(gam_nw)
+```
+
+```{r non-word-gam-plot}
+gam_nw = getViz(gam_nw)
+print(plot(gam_nw), pages=1)
+```
+
+```{r non-word-gam-err}
+gam_nw_err = gam(ERR~te(C1Friends, C2Friends)+te(C1nSense, C2nSense)+te(C1Frequency, C2Frequency), data=m2_nonword)
+summary(gam_nw_err)
+```
+
+```{r non-word-gam-err-plot}
+gam_nw_err = getViz(gam_nw_err)
+print(plot(gam_nw_err), pages=1)
+```

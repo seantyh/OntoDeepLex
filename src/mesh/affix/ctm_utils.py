@@ -61,7 +61,7 @@ class AffixoidCtmExamples:
 
         #pylint: disable=not-callable
         input_tensors = {k: torch.tensor(v) for k, v in input_data.items()}
-        targ_token_indices = [input_data.char_to_token(b, i)
+        targ_token_indices = [input_data.char _to_token(b, i)
                                 for b, i in enumerate(targ_indices)]
         outputs = self.bert.transform(input_tensors)
         affix_vecs = outputs[0][np.arange(len(targ_token_indices)), targ_token_indices, :]

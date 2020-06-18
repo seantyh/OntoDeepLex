@@ -1,0 +1,20 @@
+---
+title: "meld_sch_bychar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readr)
+require(ggplot2)
+require(partykit)
+require(mgcv)
+require(qgam)
+require(dplyr)
+```
+
+```{r read_data}
+m2=read_csv("../../data/cns/m2_cld.csv")
+m2$lexicality = factor(m2$lexicality, labels=c("Word", "NonWord"))
+m2$ErrCat = factor(m2$ERR > 50, levels=c(T, F), labels=c("ErrHigh", "ErrLow"))
+```
