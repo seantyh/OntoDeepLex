@@ -27,6 +27,12 @@ class Affixoid:
         h_affixoid = hash(getattr(self, "affixoid"))
         return h_wordnum ^ (h_affixoid << 2)
 
+    def affix_form(self):
+        if self.position == 0:
+            return "{}_.{}".format(self.affixoid, getattr(self, "wordnum"))
+        else:
+            return "_{}.{}".format(self.affixoid, getattr(self, "wordnum"))
+
     def parse_example(self, txt):
         tokens = txt.split(',')
         words_iter = (x.split('(')[0] for x in tokens)

@@ -25,6 +25,7 @@ class BertService:
 
     def transform(self, input_data: Dict[str, any]):
         outputs = self.bert(**input_data)[0]
+        return outputs
 
 
     def tokenize(self, text: str):
