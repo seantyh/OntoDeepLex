@@ -108,9 +108,8 @@ class AffixoidCtmProcessor:
                 continue
             try:
                 examples = self.build_affixoid_examples(affixoid, word)
-            
-                self.example_store[store_key] = examples
-                # self.example_store.sync()
+                self.example_store[store_key] = examples                
+                self.example_store.sync()
                 n_done += 1
 
             except Exception as ex:
@@ -139,7 +138,7 @@ class AffixoidCtmProcessor:
             sent_iter = self.asbc.query(word)            
             n = 0
             batch_size = 20
-            MAX_SIZE = 200
+            MAX_SIZE = 20
 
             # by-batch loop
 
