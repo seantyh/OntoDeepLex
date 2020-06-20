@@ -1,4 +1,5 @@
 from typing import Union, List, Dict
+import torch
 from transformers import DistilBertModel, DistilBertConfig, DistilBertTokenizerFast
 
 class BertService:
@@ -24,7 +25,8 @@ class BertService:
         return self.tokenizer.decode(_id)
 
     def transform(self, input_data: Dict[str, any]):
-        outputs = self.bert(**input_data)[0]
+        with torch.no_grad():
+            outputs = self.bert(**input_data)[0]
         return outputs
 
 

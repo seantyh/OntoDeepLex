@@ -12,9 +12,9 @@ logger = logging.getLogger()
 logging.basicConfig(level="INFO", format="[%(levelname)s] %(module)s: %(message)s")
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
+    parser = ArgumentParser()    
     args = parser.parse_args()
-
+    
     analyzer = AffixoidAnalyzer(analysis=True)
     analyzer.analyze()
 
