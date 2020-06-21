@@ -18,6 +18,7 @@ from functools import partial
 from typing import List, Iterator, Iterable, Tuple, Dict
 from collections import UserDict, Counter
 from shelve import DbfilenameShelf
+from tqdm.autonotebook import tqdm
 
 import numpy as np
 import torch
@@ -184,7 +185,7 @@ class AffixoidCtmProcessor:
         return bow_list, affix_vecs
 
     def build_vocab(self, words: Dict[Word, int], affixoids: CkipAffixoids):
-        word_iter = [w for (w, f) in words.items() if f > 50]
+        word_iter = [w for (w, f) in words.items() if f > 100]
         vocab = Vocabulary(word_iter)
         affix_iter = (aff.affix_form() for aff in affixoids)        
         vocab.update(list(affix_iter))
@@ -203,21 +204,23 @@ class AffixoidCtmProcessor:
 
 class AffixoidCtmDataset(Dataset):
     def __int__(self, ex_path=None):
-        logger = logging.getLogger(__name__)
-        if ex_path is None:
-            ex_path = get_data_dir() / "affix/affixoid_ctm_examples.pkl"
-        if ex_path.exists():
-            fin = ex_path.open("rb")
-            self.examples = pickle.load(fin)
-            fin.close()
-        else:
-            logger.info("Building Affixoid CTM examples...")
-            ex_processor = AffixoidCtmProcessor()
-            self.examples = ex_processor.build_examples()
+        self.logger = logging.getLogger(__name__)
+        affix_dir = get_data_dir / "affix"
+        self.example_store = DbfilenameShelf(
+            str(affix_dir/"ctm_examples/ctm.examples"), writeback=False)
+        self.store_index = self.index_store()
 
+    def index_store(self):
+        self.logger.info("indexing store")
+        store_index = []
+        counter = 0
+        for store_key, data in tqdm(self.example_store.items()):            
+            store_index.extend([(store_key, i) for i, _ in enumerate(data)])
+        return store_index
 
     def __len__(self):
-        return len(self.examples)
+        return len(self.store_index)
 
     def __getitem__(self, idx):
-        return self.examples[idx]
+        idx = self.store_index[idx]
+        return self.example_store[idx[0]][idx[1]]
