@@ -86,10 +86,16 @@ class AffixoidCtmProcessor:
         with (asbc_dir/"asbc5_words.pkl").open("rb") as fin:
             words = pickle.load(fin)
         self.vocab = self.build_vocab(words, self.affixoids)
+
     
     def close(self):
         self.example_store.close()
     
+    def save_vocabulary(self):
+        vocab_path = get_data_dir() / "affix/affixoid_ctm_vocab.pkl"
+        with vocab_path.open("wb") as fout:
+            pickle.dump(self.vocab, vocab_path)
+
     def build_examples(self, n_to_build=0):
         n_ex_words = sum(len(x.example_words) for x in self.affixoids)
         ex_words_iter = (zip(cycle([x]), x.example_words) for x in self.affixoids)
