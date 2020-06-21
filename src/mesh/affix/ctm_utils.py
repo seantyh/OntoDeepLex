@@ -203,9 +203,9 @@ class AffixoidCtmProcessor:
         
 
 class AffixoidCtmDataset(Dataset):
-    def __int__(self, ex_path=None):
+    def __init__(self, ex_path=None):
         self.logger = logging.getLogger(__name__)
-        affix_dir = get_data_dir / "affix"
+        affix_dir = get_data_dir() / "affix"
         self.example_store = DbfilenameShelf(
             str(affix_dir/"ctm_examples/ctm.examples"), writeback=False)
         self.store_index = self.index_store()
