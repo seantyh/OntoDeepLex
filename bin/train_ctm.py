@@ -26,6 +26,6 @@ def main():
         inference_type="contextual", n_components=100)
 
     ctm_dataset = AffixoidCtmDataset()
-    ctm.fit(ctm_dataset) # run the model
+    ctm.fit(ctm_dataset, num_epochs=2) # run the model
 
 main()
