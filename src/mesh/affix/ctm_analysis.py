@@ -19,7 +19,7 @@ class CtmModel:
         return self.model.best_components
     
     def get_topic_entropy(self):
-        if not self._topic_entropy:
+        if self._topic_entropy is None:
             topic_distr = F.softmax(self.get_beta(), dim=0)
             topic_entropy = (-torch.log(topic_distr) * topic_distr).sum(0)
             self._topic_entropy = topic_entropy.detach().cpu().numpy()
