@@ -94,7 +94,7 @@ class AffixoidCtmProcessor:
     def save_vocabulary(self):
         vocab_path = get_data_dir() / "affix/affixoid_ctm_vocab.pkl"
         with vocab_path.open("wb") as fout:
-            pickle.dump(self.vocab, vocab_path)
+            pickle.dump(self.vocab, fout)
 
     def build_examples(self, n_to_build=0):
         n_ex_words = sum(len(x.example_words) for x in self.affixoids)
@@ -191,7 +191,7 @@ class AffixoidCtmProcessor:
         return bow_list, affix_vecs
 
     def build_vocab(self, words: Dict[Word, int], affixoids: CkipAffixoids):
-        word_iter = [w for (w, f) in words.items() if f > 100]
+        word_iter = [w for (w, f) in words.items() if f > 50]
         vocab = Vocabulary(word_iter)
         affix_iter = (aff.affix_form() for aff in affixoids)        
         vocab.update(list(affix_iter))
@@ -229,4 +229,7 @@ class AffixoidCtmDataset(Dataset):
 
     def __getitem__(self, idx):
         idx = self.store_index[idx]
-        return self.example_store[idx[0]][idx[1]]
+        data = self.example_store[idx[0]][idx[1]]
+        X = torch.FloatTensor(data[0])
+        X_bert = torch.FloatTensor(data[1])
+        return {'X': X, 'X_bert': X_bert}

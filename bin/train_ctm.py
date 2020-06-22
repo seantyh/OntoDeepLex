@@ -8,7 +8,7 @@ base_path = Path(__file__).parent
 mesh_src_path = (base_path / "../src").resolve().absolute()
 sys.path.append(str(mesh_src_path))
 
-ctm_dir = base_path / "../../ctm"
+ctm_dir = base_path / "../src/ctm"
 assert ctm_dir.exists()
 sys.path.append(str(ctm_dir))
 
@@ -23,9 +23,11 @@ def main():
         vocab = pickle.load(fin)
 
     ctm = CTM(input_size=len(vocab), bert_input_size=768, 
-        inference_type="contextual", n_components=100)
+        inference_type="contextual", n_components=100,
+        num_epochs=100)
 
+    model_dir = mesh.get_data_dir() / "affix"
     ctm_dataset = AffixoidCtmDataset()
-    ctm.fit(ctm_dataset, num_epochs=2) # run the model
+    ctm.fit(ctm_dataset, save_dir=str(model_dir)) # run the model
 
 main()
