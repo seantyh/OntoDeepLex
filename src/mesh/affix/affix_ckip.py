@@ -1,5 +1,6 @@
 from itertools import chain, cycle
 from lxml import etree
+from ..utils import get_data_dir
 
 class Affixoid:
     def __init__(self, elem):
@@ -102,7 +103,10 @@ class Root(Affixoid):
         return ex_list
 
 class CkipAffixoids:
-    def __init__(self, affix_dir):
+    def __init__(self, affix_dir=None):
+        if not affix_dir:        
+            affix_dir = get_data_dir() / "affix"            
+            
         self.base_dir = affix_dir
         prepend_path = lambda x: affix_dir / x
         affixoid_files = ["詞首1.xml", "詞首2.xml",
