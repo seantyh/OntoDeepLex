@@ -35,7 +35,7 @@ def main(args):
         vocab = pickle.load(fin)
 
     ctm = CTM(input_size=len(vocab), bert_input_size=768, 
-        inference_type="contextual", n_components=50,
+        inference_type="contextual", model_type="LDA", n_components=50,
         num_epochs=30)
     
     mesh.ensure_dir(model_dir)
