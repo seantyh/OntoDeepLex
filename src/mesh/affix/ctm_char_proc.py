@@ -9,6 +9,8 @@ from shelve import DbfilenameShelf
 from tqdm.autonotebook import tqdm
 
 import numpy as np
+import torch
+from torch.utils.data import Dataset
 from .bert_service import BertService
 from .ctm_utils import Vocabulary
 from ..utils import get_data_dir, ensure_dir
@@ -109,7 +111,7 @@ class ByCharCtmProcessor:
             load_from_cache = False
 
         return load_from_cache
-        
+
     def build_charlocs(self, as_wfreq) -> LocCharWords:
         aff_chars = set(x.affixoid for x in self.affixoids)
         charpos = defaultdict(list)
@@ -197,7 +199,7 @@ class ByCharCtmProcessor:
         try:            
             n = 0
             batch_size = 20
-            MAX_SIZE = 20
+            MAX_SIZE = 50
             item_iter = iter(sentence_data)
 
             # by-batch loop            
@@ -257,3 +259,29 @@ class ByCharCtmProcessor:
         sids.append(vocab.encode(charloc))              
         sid_bow = np.bincount(sids, minlength=len(vocab))
         return sid_bow
+
+class ByCharCtmDataset(Dataset):
+    def __init__(self, ex_path=None):
+        self.logger = logging.getLogger(__name__)
+        affix_dir = get_data_dir() / "affix"
+        self.example_store = DbfilenameShelf(
+            str(affix_dir/"bychar_examples/bychar.examples"))
+        self.store_index = self.index_store()
+
+    def index_store(self):
+        self.logger.info("indexing store")
+        store_index = []
+        counter = 0
+        for store_key, data in tqdm(self.example_store.items()):            
+            store_index.extend([(store_key, i) for i, _ in enumerate(data)])
+        return store_index
+
+    def __len__(self):
+        return len(self.store_index)
+
+    def __getitem__(self, idx):
+        idx = self.store_index[idx]
+        data = self.example_store[idx[0]][idx[1]]
+        X = torch.FloatTensor(data[0])
+        X_bert = torch.FloatTensor(data[1])
+        return {'X': X, 'X_bert': X_bert}

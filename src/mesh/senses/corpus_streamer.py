@@ -42,6 +42,7 @@ class CorpusStreamer:
         
         char_indices.sync()
         self.char_indices = char_indices
+        self.sentences = sentences
         with open(corpus_dir/"sentences.pkl", "wb") as fout:
             pickle.dump(sentences, fout)
     
