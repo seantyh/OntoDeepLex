@@ -172,11 +172,11 @@ class ByCharCtmProcessor:
 
         n_done = 0
         sentence_item = self.charloc_sentences.items()
-        n_item = sum(len(x) for x in self.charloc_sentences.values())
+        n_charloc = len(self.charloc_sentences)
         
         for idx, (charloc, sentence_data) in enumerate(sentence_item):
             self.logger.info("[%d/%d] building example %s",
-                idx, n_item, charloc)
+                idx, n_charloc, charloc)
             store_key = charloc
             if store_key in self.example_store:
                 continue

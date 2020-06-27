@@ -15,19 +15,34 @@ sys.path.append(str(ctm_dir))
 #pylint: disable=import-error
 from contextualized_topic_models.models.ctm import CTM
 import mesh
-from mesh.affix import AffixoidCtmDataset
+from mesh.affix import AffixoidCtmDataset, ByCharCtmDataset
 
-def main():
-    vocab_path = mesh.get_data_dir() / "affix/affixoid_ctm_vocab.pkl"
+def main(args):
+    model_type = args.type
+    if model_type == "affixoid":
+        vocab_path = mesh.get_data_dir() / "affix/affixoid_ctm_vocab.pkl"
+        ctm_dataset = AffixoidCtmDataset()
+        model_dir = mesh.get_data_dir() / "affix/affixoid"        
+    elif model_type == "bychar":
+        vocab_path = mesh.get_data_dir() / "affix/bychar_ctm_vocab.pkl"
+        ctm_dataset = ByCharCtmDataset()
+        model_dir = mesh.get_data_dir() / "affix/bychar"
+    else:
+        print("[ERROR] unsupported type")
+        return 
+
     with vocab_path.open("rb") as fin:
         vocab = pickle.load(fin)
 
     ctm = CTM(input_size=len(vocab), bert_input_size=768, 
-        inference_type="contextual", n_components=100,
-        num_epochs=100)
-
-    model_dir = mesh.get_data_dir() / "affix"
-    ctm_dataset = AffixoidCtmDataset()
+        inference_type="contextual", n_components=50,
+        num_epochs=30)
+    
+    mesh.ensure_dir(model_dir)
     ctm.fit(ctm_dataset, save_dir=str(model_dir)) # run the model
 
-main()
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--type", choices=["affixoid", "bychar"])
+    args = parser.parse_args()
+    main(args)
