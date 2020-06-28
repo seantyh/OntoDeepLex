@@ -25,16 +25,16 @@ class CtmModel:
             self._topic_entropy = topic_entropy.detach().cpu().numpy()
         return self._topic_entropy
             
-    def get_affixoid_entropy(self, affixoid: Affixoid):
-        _id = self.vocab.encode(affixoid.affix_form())
+    def get_charloc_entropy(self, charloc: str):
+        _id = self.vocab.encode(charloc)
         topic_entropy = self.get_topic_entropy()
         return topic_entropy[_id]
     
     def get_topic_list(self, k=10):
-        topics = []
+        topics = []        
         beta = self.get_beta().detach().cpu().numpy()
         vocab = self.vocab
-        for i in range(100):
+        for i in range(50):
             idxs = np.argsort(beta[i])[-k:]
             component_words = \
                 [vocab.decode(int(idx)) for idx in idxs]
@@ -53,6 +53,24 @@ def get_ctm_models(model_name=None):
     bert_dim = 768
     nvocab = len(vocab)
     ctm = CTM(input_size=nvocab, bert_input_size=bert_dim, inference_type="contextual")
+    ctm.load_from_path(model_dir/model_name)
+    model = CtmModel(ctm, vocab)
+
+    return model
+
+def get_bychar_ctm_models(model_name=None):
+    affix_dir = get_data_dir() / "affix"
+    model_dir = affix_dir / "bychar_models"
+    if not model_name:
+        model_name = "AVTIM-bychar-h100_100-c100-prodLDA-epoch_9.pth"
+
+    with (affix_dir/"bychar_ctm_vocab.pkl").open("rb") as vocab_f:
+        vocab = pickle.load(vocab_f)
+
+    bert_dim = 768
+    nvocab = len(vocab)
+    ctm = CTM(input_size=nvocab, bert_input_size=bert_dim, 
+            inference_type="contextual", model_type="LDA")
     ctm.load_from_path(model_dir/model_name)
     model = CtmModel(ctm, vocab)
 
