@@ -17,7 +17,7 @@ from ..senses.corpus_streamer import CorpusStreamer
 from ..deep.tensor_utils import BertService
 from . import ctm_analysis
 
-Word = str, Freq = int
+Word = str; Freq = int
 
 class ByCharAnalyzer:
     def __init__(self):
@@ -33,7 +33,7 @@ class ByCharAnalyzer:
             with data_path.open("rb") as fin:
                 data = pickle.load(fin)
         self.charlocs = data["charloc"]
-        self.output_path = affix_dir / "affixoid_table.csv"
+        self.output_path = affix_dir / "bychar_affixoid_table.csv"
 
         logger.info("loading asbc5 words")
         with (asbc_dir/"asbc5_words.pkl").open("rb") as fin:
@@ -47,7 +47,7 @@ class ByCharAnalyzer:
         self.words_pos = self.reindex_words_pos(words_pos)
 
         logger.info("Loading CTM")
-        self.ctm = ctm_analysis.get_ctm_models()
+        self.ctm = ctm_analysis.get_bychar_ctm_models()
 
     def reindex_words_pos(self, words_pos):        
         pos_map = {}
@@ -60,8 +60,8 @@ class ByCharAnalyzer:
         logger = logging.getLogger("ByCharAnalyzer")
         results = []        
 
-        for charloc, charloc_data in tqdm(self.charlocs):
-            try:                
+        for charloc, charloc_data in tqdm(self.charlocs.items()):
+            try:                              
                 indices = self.analyze_one(charloc, charloc_data) 
                 results.append(indices)
                 
@@ -69,6 +69,7 @@ class ByCharAnalyzer:
                 import traceback
                 logger.error(ex)
                 logger.error(traceback.format_exc())
+                break
         
         frame = pd.DataFrame.from_records(results)        
         frame.to_csv(self.output_path)
@@ -82,8 +83,8 @@ class ByCharAnalyzer:
             self.compute_productivity_pos, 
             self.compute_meaning
             )
-
-        charloc_type = "start" if charloc.index("_") == 0 else "end"
+        
+        charloc_type = "end" if charloc.index("_") == 0 else "start"
         charloc_char = charloc.replace("_", "")
 
         indices = {
@@ -92,32 +93,35 @@ class ByCharAnalyzer:
             "form": charloc_char}
 
         for compute_func in func_list:
-            compute_func(charloc, indices)
+            compute_func(charloc, ex_words, indices)
         
         return indices
 
     def compute_position(self, charloc: str, 
-            ex_words: List[Tuple[Word, Freq]], indices: Dict[any, any]):
-        ex_words = [x[1] for x in affixoid.example_words]
+            ex_words: List[Tuple[Word, Freq]], indices: Dict[any, any]):        
+        charloc_pos = 0 if charloc.index("_") == 0 else 1
         indices.update({
             'nword': len(ex_words),
-            'isstart': len(ex_words) if affixoid.position==0 else 0,
-            'isend': len(ex_words) if affixoid.position==1 else 0
+            'isstart': len(ex_words) if charloc_pos==0 else 0,
+            'isend': len(ex_words) if charloc_pos==1 else 0
             })
 
     def compute_productivity_morph(self, 
             charloc: str, 
-            ex_words: List[Tuple[Word, Freq]], indices: Dict[any, any]):        
+            ex_words: List[Tuple[Word, Freq]], 
+            indices: Dict[any, any]):        
         
         if ex_words:
             wfreq = np.array([x[1] for x in ex_words])    
-            ex_wfreq = np.log(sum(wfreq)+1)
+            log_ex_wfreq = np.log(sum(wfreq)+1)
+            ex_wfreq = sum(wfreq)
             morph_index = np.log(sum(1/f for f in wfreq if f))
         else:
             ex_wfreq = 0
             morph_index = np.nan
         indices.update({
             "ex_wfreq": ex_wfreq,
+            "log_ex_wfreq": log_ex_wfreq,            
             "prod_morph": morph_index
             })
 
@@ -138,6 +142,9 @@ class ByCharAnalyzer:
     def compute_meaning(self, charloc: str, 
             ex_words: List[Tuple[Word, Freq]], 
             indices: Dict[any, any]):
-        aff_entropy = self.ctm.get_affixoid_entropy(charloc)
-        indices.update({"ctm_entropy": aff_entropy})
+        if self.ctm.vocab.encode(charloc):
+            charloc_entropy = self.ctm.get_charloc_entropy(charloc)
+        else:
+            charloc_entropy = np.nan
+        indices.update({"ctm_entropy": charloc_entropy})
 

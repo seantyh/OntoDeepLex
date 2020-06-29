@@ -30,11 +30,16 @@ class CtmModel:
         topic_entropy = self.get_topic_entropy()
         return topic_entropy[_id]
     
+    def get_affixoid_entropy(self, affixoid: Affixoid):
+        _id = self.vocab.encode(affixoid.affix_form())
+        topic_entropy = self.get_topic_entropy()
+        return topic_entropy[_id]
+    
     def get_topic_list(self, k=10):
         topics = []        
         beta = self.get_beta().detach().cpu().numpy()
         vocab = self.vocab
-        for i in range(50):
+        for i in range(self.model.n_components):
             idxs = np.argsort(beta[i])[-k:]
             component_words = \
                 [vocab.decode(int(idx)) for idx in idxs]
