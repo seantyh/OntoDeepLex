@@ -1,0 +1,73 @@
+---
+title: "meld_pseudo_word"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(readr)
+require(ggplot2)
+require(mgcv)
+require(mgcViz)
+require(qgam)
+require(dplyr)
+```
+
+```{r read_data}
+m2=read_csv("../../data/cns/m2_cld_sensePath.csv")
+m2$lexicality = factor(m2$lexicality, labels=c("Word", "NonWord"))
+m2$ErrCat = factor(m2$ERR > 50, levels=c(T, F), labels=c("ErrHigh", "ErrLow"))
+m2$C1nSense = log(m2$C1nSense+1)
+m2$C2nSense = log(m2$C2nSense+1)
+m2$C1Friends = log(m2$C1Friends+1)
+m2$C2Friends = log(m2$C2Friends+1)
+m2$C1Frequency = log(m2$C1Frequency+1)
+m2$C2Frequency = log(m2$C2Frequency+1)
+```
+
+```{r eyeballing}
+dim(m2)
+head(m2)
+```
+
+```{r vis_m2}
+ggplot(m2, aes(x=RT, color=lexicality)) + 
+    geom_rug() + 
+    geom_density(lwd=1) + 
+    facet_wrap(~ErrCat)
+```
+
+## Non-word
+
+```{r non-word-1}
+m2_nonword = m2 %>% 
+          subset(lexicality=="NonWord") %>%
+          select(c("RT", "ERR", "sensePathDist", grep("C[12].", colnames(m2)))) %>%
+          mutate(RT = -1000/RT)
+head(m2_nonword)
+```
+
+
+```{r non-word-gam-dist}
+gam_nw_sp = gam(RT~s(sensePathDist)+te(C1Friends, C2Friends)+te(C1nSense, C2nSense)+te(C1Frequency, C2Frequency), data=m2_nonword)
+summary(gam_nw_sp)
+```
+
+```{r non-word-gam-plot}
+plot(gam_nw_sp, select=4)
+vis.gam(gam_nw_sp, view=c("C1Friends", "C2Friends"), plot.type='contour', too.far=0.1, color='topo')
+vis.gam(gam_nw_sp, view=c("C1nSense", "C2nSense"), plot.type='contour', too.far=0.1, color='topo')
+vis.gam(gam_nw_sp, view=c("C1Frequency", "C2Frequency"), plot.type='contour', too.far=0.1, color='topo')
+```
+
+```{r non-word-gam-err}
+gam_nw_err_sp = gam(ERR~s(sensePathDist)+te(C1Friends, C2Friends)+te(C1nSense, C2nSense)+te(C1Frequency, C2Frequency), data=m2_nonword)
+summary(gam_nw_err_sp)
+```
+
+```{r non-word-gam-err-plot}
+plot(gam_nw_err_sp, select=1)
+vis.gam(gam_nw_err_sp, view=c("C1Friends", "C2Friends"), plot.type='contour', too.far=0.1, color='topo')
+vis.gam(gam_nw_err_sp, view=c("C1nSense", "C2nSense"), plot.type='contour', too.far=0.1, color='topo')
+vis.gam(gam_nw_err_sp, view=c("C1Frequency", "C2Frequency"), plot.type='contour', too.far=0.1, color='topo')
+```
