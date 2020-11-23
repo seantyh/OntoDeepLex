@@ -1,0 +1,144 @@
+---
+title: "70.43 affixoids"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+require(mgcv)
+require(mgcViz)
+require(qgam)
+require(tidymv)
+require(gridExtra)
+require(Rtsne)
+require(RColorBrewer)
+```
+
+```{r loaddata}
+affdata = read_csv("../../data/affix/bychar_affixoid_table_with_ref.csv")
+affdata$affix_type = factor(affdata$affix_type)
+#set.seed(12345)
+#prefix = affdata %>% subset(affix_type=="start" & is_in_ref==T)
+#suffix = affdata %>% subset(affix_type=="end" & is_in_ref==T)
+#set.seed(12345)
+#prefix_filler = affdata %>% 
+#      subset(affix_type=="end" & is_in_ref==F) %>% 
+#      sample_n(nrow(prefix))
+#set.seed(12345)
+#suffix_filler = affdata %>% 
+#      subset(affix_type=="end" & is_in_ref==F) %>% 
+#      sample_n(nrow(suffix))
+#affdata = rbind(prefix, suffix, prefix_filler, suffix_filler)
+```
+
+```{r model}
+m0 = bam(is_in_ref~prod_morph+pos_entropy+ctm_entropy, data=affdata, family="binomial")
+m1 = bam(is_in_ref~s(prod_morph, by=affix_type)+
+           s(pos_entropy, by=affix_type)+
+           s(ctm_entropy, by=affix_type), data=affdata, family="binomial")
+m0 = getViz(m0)
+m1 = getViz(m1)
+summary(m1)
+```
+
+```{r plot.viz}
+plot_pars = theme(legend.position="bottom")
+legend_title = "Position"
+legend_pars = list(scale_fill_discrete(name=legend_title),
+      scale_color_discrete(name=legend_title),
+      scale_linetype_discrete(name=legend_title))
+mg1 = plot_smooths(model=m1, series=prod_morph, comparison=affix_type) + 
+      geom_rug(aes(x=prod_morph, color=affix_type), 
+               inherit.aes=F, 
+               data=select(affdata, c(prod_morph,affix_type,is_in_ref))) + 
+      plot_pars + xlab("morphological prod.") + ylab("partial effect") + 
+      legend_pars
+      
+mg2 = plot_smooths(model=m1, series=pos_entropy, comparison=affix_type) + 
+      geom_rug(aes(x=pos_entropy, color=affix_type), 
+               inherit.aes=F, 
+               data=select(affdata, c(pos_entropy,affix_type,is_in_ref))) + 
+      plot_pars + xlab("syntactic prod.") + ylab("") + 
+      legend_pars
+
+mg3 = plot_smooths(model=m1, series=ctm_entropy, comparison=affix_type) + 
+      geom_rug(aes(x=ctm_entropy, color=affix_type), 
+               inherit.aes=F,
+               data=select(affdata, c(ctm_entropy,affix_type,is_in_ref))) +
+      plot_pars + xlab("sem. diversity") + ylab("") + 
+      legend_pars
+
+gam_plot = grid.arrange(mg1, mg2, mg3, ncol=3)
+ggsave("charloc_gam_effect.pdf", gam_plot, width=12, height=4, units="in")
+```
+
+```{r weighted.char}
+summarise_affixoid = function(x, y){
+  loc_vec = c(x$isstart, x$isend)
+  loc_prob = loc_vec / sum(loc_vec)
+  loc_prob = loc_prob[loc_prob>0]
+  loc_entropy = -sum(log(loc_prob) * loc_prob)
+  weights = x$nword / sum(x$nword)
+  return(tibble(
+    nword=sum(x$nword),
+    loc_entropy=loc_entropy,
+    prod_morph=sum(x$prod_morph*weights),
+    pos_entropy=sum(x$pos_entropy*weights),
+    ctm_entropy=sum(x$ctm_entropy*weights),
+    pred=sum(x$pred*weights)
+  ))
+}
+
+affcharac = affdata %>% 
+    mutate(pred=predict(m1, affdata, type="response")) %>% 
+    group_by(form) %>% 
+    group_modify(summarise_affixoid) %>% 
+    ungroup() %>%
+    arrange(pred)
+
+```
+
+```{r tsne}
+set.seed(12345)
+tsne_out = Rtsne(affcharac[3:6], pca=F, perplexity=50)
+afftsne = data.frame(x=tsne_out$Y[,1], y=tsne_out$Y[,2], pred=affcharac$pred)
+```
+
+```{r plot.gradient}
+col_pal = scale_color_gradientn(colors=rev(brewer.pal(6,"RdYlBu")), 
+                              guide=guide_colorbar(direction="horizontal"))
+
+g1 = ggplot(affcharac) + 
+     geom_point(aes(x=prod_morph, y=pos_entropy, color=pred)) +        
+     scale_color_gradientn(colors=rev(brewer.pal(6,"RdYlBu"))) + 
+     xlab("morph. prod.") + 
+     ylab("syntactic prod.") + 
+     ggtitle("Pairwise affixoid indices") + 
+     theme(plot.title=element_text(hjust=0.4))
+
+g2 = ggplot(affcharac) + 
+     geom_point(aes(x=prod_morph, y=ctm_entropy, color=pred)) +        
+     scale_color_gradientn(colors=rev(brewer.pal(6,"RdYlBu"))) + 
+     xlab("morph. prod.") + 
+     ylab("sem. diversity")
+
+g3 = ggplot(affcharac) + 
+     geom_point(aes(x=pos_entropy, y=ctm_entropy, color=pred)) +        
+     scale_color_gradientn(colors=rev(brewer.pal(6,"RdYlBu"))) + 
+     xlab("syntactic prod.") + 
+     ylab("sem. diversity")
+
+
+g_tsne = ggplot(afftsne) + geom_point(aes(x=x, y=y, color=pred)) + 
+      col_pal + theme(legend.position=c(0.3, 0.2)) + 
+      xlab("Dim 1") + 
+      ylab("Dim 2") + ggtitle("tSNE Representation of 3 Affixoid indices")
+      
+
+aff_char_plot = 
+  grid.arrange(g1, g2, g3, g_tsne, layout_matrix=rbind(c(4,1),c(4, 2), c(4, 3)), widths=c(3, 2))
+
+ggsave("aff_charac_plot.pdf", aff_char_plot, width=8, height=6, units="in")
+
+```
